@@ -1,0 +1,46 @@
+<html>
+    <body>
+        <h1>Azure Web PubSub Serverless Chat App</h1>
+        <div id="login"></div>
+        <p></p>
+        <input id="message" placeholder="Type to chat..." hidden>
+        <div id="messages" hidden ></div>
+        <script>
+            (async function () {
+                parameterList = new URLSearchParams(window.location.search)
+                if (!parameterList.has('username')) {
+                    // auth
+                    let login = document.querySelector("#login");
+                    login.innerHTML = `You should add your username at the end of the URL: ?username=<username>`;
+                }
+                else {
+                    let login = document.querySelector("#login");
+                    login.innerHTML = `Logged in as <b>` + parameterList.get('username') + `</b>.<br>`;
+
+                    // negotiate
+                    let messages = document.querySelector('#messages');
+                    messages.removeAttribute("hidden");
+                    let res = await fetch(`/api/negotiate?username=` + parameterList.get('username'), {
+                        credentials: "include"
+                    });
+                    let url = await res.json();
+                    // connect
+                    let ws = new WebSocket(url.url);
+                    ws.onopen = () => console.log('connected');
+                    ws.onmessage = event => {
+                        let m = document.createElement('p');
+                        m.innerText = event.data;
+                        messages.appendChild(m);
+                    };
+                    let message = document.querySelector('#message');
+                    message.removeAttribute("hidden");
+                    message.addEventListener('keypress', e => {
+                        if (e.charCode !== 13) return;
+                        ws.send(message.value);
+                        message.value = '';
+                    });
+                }
+            })();
+        </script>
+    </body>
+</html>
